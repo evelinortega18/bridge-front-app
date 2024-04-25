@@ -1,14 +1,9 @@
-import { useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
-import { Text, View, StyleSheet, Button, TouchableOpacity } from "react-native";
+import React, { useState, useEffect } from "react";
+import { Text, View, StyleSheet, TouchableOpacity } from "react-native";
 import { Accelerometer } from "expo-sensors";
 import * as Notifications from "expo-notifications";
-import { LineChart } from "react-native-chart-kit";
-// import * as Device from 'expo-device';
-import FFT from "fft-js";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ScrollView } from "react-native-web";
+import * as math from "mathjs";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -21,30 +16,37 @@ Notifications.setNotificationHandler({
 export default function Vibrations() {
   const [{ x, y, z }, setData] = useState({ x: 0, y: 0, z: 0 });
   const [isAccelerometerActive, setIsAccelerometerActive] = useState(false);
-  const [frequencyData, setFrequencyData] = useState([]);
-  const router = useRouter();
+  const [subscription, setSubscription] = useState(null);
+  const [ecgData, setEcgData] = useState([]);
+  console.log("🚀 ~ Vibrations ~ ecgData:", ecgData);
+  const [peaks, setPeaks] = useState([]);
+  const [showPeaks, setShowPeaks] = useState(false); // Utilizamos un solo estado para controlar la visibilidad de los picos
 
-  useEffect(() => {
-    let subscription;
-
-    const handleAccelerometerData = (accelerometerData) => {
-      setData(accelerometerData);
-    };
-
-    if (isAccelerometerActive) {
-      subscription = Accelerometer.addListener(handleAccelerometerData);
-    }
-
-    return () => {
-      if (subscription) {
-        subscription.remove();
-      }
-    };
-  }, [isAccelerometerActive]);
-
-  const handleStartStopAccelerometer = () => {
+  const handleStartStopAccelerometer = async () => {
     setIsAccelerometerActive(!isAccelerometerActive);
-    sendNotification(!isAccelerometerActive);
+
+    if (!isAccelerometerActive) {
+      const newSubscription = Accelerometer.addListener(
+        handleAccelerometerChange
+      );
+      setSubscription(newSubscription);
+      await sendNotification(true);
+    } else {
+      subscription.remove();
+      setSubscription(null);
+      await sendNotification(false);
+      setShowPeaks(true); // Activar la visibilidad de la sección de picos cuando se detiene la captura
+    }
+  };
+
+  const handleAccelerometerChange = (acceleration) => {
+    setData({
+      x: acceleration.x.toFixed(5),
+      y: acceleration.y.toFixed(5),
+      z: acceleration.z.toFixed(5),
+    });
+
+    handleIFFT(acceleration);
   };
 
   const sendNotification = async (isActive) => {
@@ -61,107 +63,111 @@ export default function Vibrations() {
     });
   };
 
+  const handleIFFT = (acceleration) => {
+    const datosFrecuencia = [acceleration.x, acceleration.y, acceleration.z];
+    const datosTiempo = math.ifft(datosFrecuencia);
+    const datosTiempoReal = datosTiempo.map((complejo) => complejo.re);
+    setEcgData(datosTiempoReal);
+  };
+
+  const calcularAmplitudMaximaMinima = () => {
+    if (ecgData.length === 0) {
+      return { maxima: 0, minima: 0 };
+    }
+
+    const maxima = Math.max(...ecgData);
+    const minima = Math.min(...ecgData);
+    return { maxima, minima };
+  };
+
+  const identificarPatronesRepetitivos = () => {
+    if (ecgData.length === 0) {
+      return;
+    }
+
+    const threshold = 0.1; // Umbral para considerar un pico
+    const peaks = [];
+
+    for (let i = 1; i < ecgData.length - 1; i++) {
+      if (
+        ecgData[i] > ecgData[i - 1] &&
+        ecgData[i] > ecgData[i + 1] &&
+        ecgData[i] > threshold
+      ) {
+        peaks.push({ index: i, value: ecgData[i] });
+      }
+    }
+    setPeaks(peaks);
+    console.log("Picos detectados:", peaks);
+  };
+
   useEffect(() => {
-    const getNotificationPermission = async () => {
-      const { status } = await Notifications.getPermissionsAsync();
-      if (status !== "granted") {
-        await Notifications.requestPermissionsAsync();
+    const { maxima, minima } = calcularAmplitudMaximaMinima();
+  }, [ecgData]);
+
+  useEffect(() => {
+    if (!isAccelerometerActive) {
+      identificarPatronesRepetitivos();
+    }
+  }, [isAccelerometerActive]);
+
+  useEffect(() => {
+    return () => {
+      if (subscription) {
+        subscription.remove();
       }
     };
-
-    getNotificationPermission();
   }, []);
 
-  //   useEffect(() => {
-  //     let subscription;
-
-  //     if (isAccelerometerActive) {
-  //       subscription = Accelerometer.addListener((accelerometerData) => {
-  //         setData(accelerometerData);
-  //         // Convertir los datos de aceleración a un array unidimensional
-  //         const accelerationValues = [x, y, z].map((value) => value || 0);
-  //         const accelerationMagnitude = Math.sqrt(
-  //           accelerationValues.reduce((sum, value) => sum + value ** 2, 0)
-  //         );
-  //         // Aplicar la transformada de Fourier a los datos de aceleración
-  //         const fftData = FFT.fft(accelerationValues);
-  //         // Calcular las magnitudes de las frecuencias
-  //         const magnitudeData = fftData.map((value) =>
-  //           Math.sqrt(value[0] ** 2 + value[1] ** 2)
-  //         );
-  //         setFrequencyData(magnitudeData);
-  //       });
-  //     }
-
-  //     return () => {
-  //       if (subscription) {
-  //         subscription.remove();
-  //       }
-  //     };
-  //   }, [isAccelerometerActive]);
-
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>
-        A continuacion pulsa el boton naranja para iniciar con la captura de
-        datos:
-      </Text>
-
-      <View style={styles.chartContainer}>
-        <LineChart
-          data={{
-            labels: ["X", "Y", "Z"],
-            datasets: [
-              {
-                data: [x, y, z],
-              },
-            ],
-          }}
-          width={400}
-          height={300}
-          chartConfig={{
-            backgroundColor: "#fff",
-            backgroundGradientFrom: "#fff",
-            backgroundGradientTo: "#fff",
-            decimalPlaces: 2, // número de decimales en los valores del eje Y
-            justifyContent: "center",
-            alignItems: "center",
-            color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`,
-          }}
-        />
-      </View>
-
-      <View style={styles.MeasureView}>
-        <Text>x: {x}</Text>
-        <Text>y: {y}</Text>
-        <Text>z: {z}</Text>
-      </View>
-
-      <TouchableOpacity
-        onPress={handleStartStopAccelerometer}
-        style={
-          isAccelerometerActive ? styles.ButtonCapture : styles.ButtonCapture
-        }
-      >
-        <Text style={styles.buttonText}>
-          {isAccelerometerActive
-            ? "Parar Captura de Datos"
-            : "Comenzar Captura de Datos"}
+    <SafeAreaView style={{ backgroundColor: "#ffff" }}>
+      <View style={styles.container}>
+        <Text style={styles.title}>
+          A continuación, pulsa el botón naranja para iniciar o detener la
+          captura de datos:
         </Text>
-      </TouchableOpacity>
-      <StatusBar style="auto" />
+
+        {showPeaks && (
+          <View style={styles.picks}>
+            <Text style={styles.titlePicks}>Picos altos:</Text>
+            <View style={styles.picksShow}>
+              <Text style={styles.picksResult}>
+                {" "}
+                {peaks
+                  .map(
+                    (peak, index) =>
+                      `Índice: ${peak.index}, Valor: ${peak.value}`
+                  )
+                  .join(", ")}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        <View style={styles.MeasureView}>
+          <Text>x: {x}</Text>
+          <Text>y: {y}</Text>
+          <Text>z: {z}</Text>
+        </View>
+        <TouchableOpacity
+          onPress={handleStartStopAccelerometer}
+          style={isAccelerometerActive ? styles.buttonStop : styles.buttonStart}
+        >
+          <Text style={styles.buttonText}>
+            {isAccelerometerActive
+              ? "Parar Captura de Datos"
+              : "Comenzar Captura de Datos"}
+          </Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    alignItems: "center",
     padding: 24,
-    display: "flex",
+    alignItems: "center",
   },
   title: {
     fontSize: 20,
@@ -170,8 +176,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     textAlign: "justify",
   },
-  chartContainer: {
-    marginBottom: 0,
+  graph: {
+    height: 350,
+    width: 300,
   },
   MeasureView: {
     width: 200,
@@ -180,21 +187,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#F4F4F4",
     justifyContent: "center",
     alignItems: "center",
+    marginTop: 200,
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between', 
-    marginBottom: 12, 
-    gap: 30
-  },
-  btn: {
-    borderRadius: 5,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    backgroundColor: "#FF8403",
-    borderColor: "#FF8403",
-  },
-  ButtonCapture: {
+  buttonStart: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -204,11 +199,46 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     backgroundColor: "#FF8403",
     borderColor: "#FF8403",
+    marginTop: 15,
+  },
+  buttonStop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderWidth: 1,
+    backgroundColor: "#FF8403",
+    borderColor: "#FF8403",
+    marginTop: 15,
   },
   buttonText: {
     fontSize: 18,
     lineHeight: 26,
     fontWeight: "600",
     color: "#fff",
+  },
+  picks: {
+    marginTop: 25,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  titlePicks: {
+    fontSize: 30,
+    color: "#1d1d1d",
+    fontWeight: "500",
+    marginBottom: 20,
+  },
+  picksShow: {
+    width: 380,
+    height: 50,
+    backgroundColor: "#004884",
+    justifyContent: "center",
+    borderRadius: 15
+  },
+  picksResult: {
+    fontSize: 19,
+    color: "white",
   },
 });
