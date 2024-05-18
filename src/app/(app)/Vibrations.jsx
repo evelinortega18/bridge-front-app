@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Text, View, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import { Text, View, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from "react-native";
 import { Accelerometer } from "expo-sensors";
 import * as Notifications from "expo-notifications";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as math from "mathjs";
+import { LineChart } from 'react-native-chart-kit';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -37,7 +38,6 @@ export default function Vibrations() {
       setSubscription(null);
       await sendNotification(false);
       setShowPeaks(true); // Activar la visibilidad de la sección de picos cuando se detiene la captura
-      performFFT(); // Call the new function to perform FFT on the accumulated data
     }
   };
 
@@ -63,15 +63,19 @@ export default function Vibrations() {
       trigger: null,
     });
   };
-
+  
   const performFFT = () => {
     const { x, y, z } = accelerometerData;
-    const dataX = math.fft(x);
-    const dataY = math.fft(y);
-    const dataZ = math.fft(z);
+    console.log("about to fuck up")
+    const dataX = math.ifft(x);
+    const dataY = math.ifft(y);
+    const dataZ = math.ifft(z);
     const realX = dataX.map((complex) => complex.re);
     const realY = dataY.map((complex) => complex.re);
     const realZ = dataZ.map((complex) => complex.re);
+    //const reshapeData = zip(x, y, z);
+    //const ndFT = math.fft(reshapeData, 0);
+    //const real_ndFT = math.re(ndFT);
     // Update ecgData with FFT results
     setEcgData({ x: realX, y: realY, z: realZ });
     console.log("fft x:", realX);
@@ -82,6 +86,12 @@ export default function Vibrations() {
     setAccelerometerData({ x: [], y: [], z: [] });
   };
 
+  useEffect(() => {
+    if (isAccelerometerActive === false && showPeaks === true) {
+      // Perform FFT when capture stops and showPeaks is true
+      performFFT();
+    }
+  }, [isAccelerometerActive, showPeaks]);
 
   const calcularAmplitudMaximaMinima = () => {
     if (ecgData.length === 0) {
@@ -122,17 +132,13 @@ export default function Vibrations() {
       }
       results[axis] = peaks; // Store peaks for the current axis
 
-
-      /*
-      */
-
     }
 
-    var { x, y, z } = ecgData;
+    const { x, y, z } = Object.values(ecgData);
     console.log("ecgData:", ecgData);
-    maxFrecX = Math.max(x);
-    maxFrecY = Math.max(y);
-    maxFrecZ = Math.max(z);
+    const maxFrecX = Math.max(x);
+    const maxFrecY = Math.max(y);
+    const maxFrecZ = Math.max(z);
     console.log("Valores máximos de frecuencias (mayor máximo, no primer máximo)");
     console.log("maxFrecX:", maxFrecX);
     console.log("maxFrecY:", maxFrecY);
@@ -141,18 +147,24 @@ export default function Vibrations() {
     console.log("Picos detectados x:", results.x);
     console.log("Picos detectados y:", results.y);
     console.log("Picos detectados z:", results.z);
+    console.log("Valores de primer máximo de frecuencias");
+    // FIXME Revisar unidades de picos resultantes de ifft
+    console.log("Picos detectados x:", results.x[0]["value"], "Hz");
+    console.log("Picos detectados y:", results.y[0]["value"], "Hz");
+    console.log("Picos detectados z:", results.z[0]["value"], "Hz");
     return results; // Return the results object containing peaks for x, y, and z
   };
 
   useEffect(() => {
     const { maxima, minima } = calcularAmplitudMaximaMinima();
   }, [ecgData]);
-
+  /*
   useEffect(() => {
     if (!isAccelerometerActive) {
       identificarPatronesRepetitivos();
     }
   }, [isAccelerometerActive]);
+  */
 
   useEffect(() => {
     return () => {
@@ -161,6 +173,31 @@ export default function Vibrations() {
       }
     };
   }, []);
+
+  const chartData = showPeaks ? {
+    labels: ecgData.x,
+    datasets: [
+      {
+        data: ecgData.x,
+        strokeWidth: 2,
+        color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`, // Red color for xreal
+        label: 'X-axis',
+      },
+      {
+        data: ecgData.y,
+        strokeWidth: 2,
+        color: (opacity = 1) => `rgba(0, 255, 0, ${opacity})`, // Green color for yreal
+        label: 'Y-axis',
+      },
+      {
+        data: ecgData.z,
+        strokeWidth: 2,
+        color: (opacity = 1) => `rgba(0, 0, 255, ${opacity})`, // Blue color for zreal
+        label: 'Z-axis',
+      },
+    ],
+  } : {};
+
 
   return (
     <SafeAreaView style={{ backgroundColor: "#ffff" }}>
@@ -188,6 +225,26 @@ export default function Vibrations() {
               ))}
             </View>
           )}
+          {showPeaks && ecgData.x.length > 0 && (
+            <LineChart
+              data={chartData}
+              width={Dimensions.get('window').width - 16} // Adjust width as needed
+              height={320}
+              chartConfig={{
+                backgroundColor: '#ffffff', // White background
+                decimalPlaces: 2, // Show two decimal places
+                color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`, // Black color for axis labels
+                style: {
+                  borderRadius: 16, // Rounded corners for the chart
+                },
+              }}
+              style={{
+                marginVertical: 8, // Add margin
+              }}
+            />
+          )}
+
+
 
           <View style={styles.MeasureView}>
             <Text>x: {accelerometerData.x.length > 0 ? accelerometerData.x[accelerometerData.x.length - 1] : '---'}</Text>
