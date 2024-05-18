@@ -149,9 +149,10 @@ export default function Vibrations() {
     console.log("Picos detectados z:", results.z);
     console.log("Valores de primer máximo de frecuencias");
     // FIXME Revisar unidades de picos resultantes de ifft
-    console.log("Picos detectados x:", results.x[0]["value"], "Hz");
-    console.log("Picos detectados y:", results.y[0]["value"], "Hz");
-    console.log("Picos detectados z:", results.z[0]["value"], "Hz");
+    console.log("Picos detectados x:", results.x?.[0]?.value ? `${results.x[0].value} Hz` : "");
+    console.log("Picos detectados y:", results.y?.[0]?.value ? `${results.y[0].value} Hz` : "");
+    console.log("Picos detectados z:", results.z?.[0]?.value ? `${results.z[0].value} Hz` : "");
+    
     return results; // Return the results object containing peaks for x, y, and z
   };
 
@@ -225,25 +226,9 @@ export default function Vibrations() {
               ))}
             </View>
           )}
-          {showPeaks && ecgData.x.length > 0 && (
-            <LineChart
-              data={chartData}
-              width={Dimensions.get('window').width - 16} // Adjust width as needed
-              height={320}
-              chartConfig={{
-                backgroundColor: '#ffffff', // White background
-                decimalPlaces: 2, // Show two decimal places
-                color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`, // Black color for axis labels
-                style: {
-                  borderRadius: 16, // Rounded corners for the chart
-                },
-              }}
-              style={{
-                marginVertical: 8, // Add margin
-              }}
-            />
-          )}
-
+          
+          
+          
 
 
           <View style={styles.MeasureView}>
