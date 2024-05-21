@@ -22,7 +22,7 @@ export default function Vibrations() {
 
   const [peaks, setPeaks] = useState([]);
   const [showPeaks, setShowPeaks] = useState(false); // Utilizamos un solo estado para controlar la visibilidad de los picos
-
+  const [firstPeak, setFirstPeak] = useState(0);
 
   const handleStartStopAccelerometer = async () => {
     setIsAccelerometerActive(!isAccelerometerActive);
@@ -73,10 +73,6 @@ export default function Vibrations() {
     const realX = dataX.map((complex) => complex.re);
     const realY = dataY.map((complex) => complex.re);
     const realZ = dataZ.map((complex) => complex.re);
-    //const reshapeData = zip(x, y, z);
-    //const ndFT = math.fft(reshapeData, 0);
-    //const real_ndFT = math.re(ndFT);
-    // Update ecgData with FFT results
     setEcgData({ x: realX, y: realY, z: realZ });
     console.log("fft x:", realX);
     console.log("fft y:", realY);
@@ -152,7 +148,11 @@ export default function Vibrations() {
     console.log("Picos detectados x:", results.x?.[0]?.value ? `${results.x[0].value} Hz` : "");
     console.log("Picos detectados y:", results.y?.[0]?.value ? `${results.y[0].value} Hz` : "");
     console.log("Picos detectados z:", results.z?.[0]?.value ? `${results.z[0].value} Hz` : "");
-    
+    setFirstPeak({
+      x: results?.x?.[0]?.value || "-",
+      y: results?.y?.[0]?.value || "-",
+      z: results?.z?.[0]?.value || "-",
+    });
     return results; // Return the results object containing peaks for x, y, and z
   };
 
@@ -218,7 +218,7 @@ export default function Vibrations() {
                   <Text style={styles.picksResult}>
                     Eje {axis}: {peaks[axis].length > 0 // Check if there are peaks for this axis
                       ? peaks[axis]
-                        .map((peak) => `Índice: ${peak.index}, Valor: ${peak.value}`)
+                        .map((peak) => `Índice: ${peak.index}, Valor: ${peak.value}, Freq: ${firstPeak[axis]} Hz`)
                         .join(", ")
                       : "Sin picos detectados"}
                   </Text>
