@@ -19,31 +19,31 @@
       "supportsTablet": true,
       "config": {
         "usesNonExemptEncryption": false
-      }
+      },
+      "bundleIdentifier": "com.juanes2002.bridgesapp"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "permissions":["android.permissions.HIGH_SIMPLY_RATE_SENSORS"]
+      "permissions": [
+        "android.permissions.HIGH_SIMPLY_RATE_SENSORS"
+      ],
+      "package": "com.juanes2002.bridgesapp"
     },
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
     "plugins": [
-      [
-        "expo-notifications",
-        {
-          "icon": "./local/assets/notification-icon.png",
-          "color": "#ffffff",
-          "sounds": [
-            "./local/assets/notification-sound.wav",
-            "./local/assets/notification-sound-other.wav"
-          ]
-        }
-      ]
-    ]
+      "expo-secure-store",
+      "expo-camera"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "52780e8e-2dc6-413e-8f70-8cd9ceff99ab"
+      }
+    }
   }
 }

@@ -12,7 +12,12 @@ import {
 } from 'react-native';
 import { useRouter } from "expo-router";
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import logo from "../../assets/logo-alcaldia.png" 
+import logo from "../../assets/logo-alcaldia.png";
+import * as WebBrowser from 'expo-web-browser';
+import * as SecureStore from 'expo-secure-store'; // Importar SecureStore
+
+const loginEndpoint = process.env.LOGIN_USER_ACCOUNT_GOOGLE;
+const callbackEndpoint = process.env.LOGIN_USER_ACCOUNT_GOOGLE_CALLBACK;
 
 export default function Login() {
   const [form, setForm] = useState({
@@ -24,10 +29,31 @@ export default function Login() {
   const passwordRef = useRef("");
 
   const handleLogin = async () => {
-    if(!emailRef.current || !passwordRef.current){
-      Alert.alert('Login', "Llena todos los campos!")
+    if (!emailRef.current || !passwordRef.current) {
+      Alert.alert('Login', "¡Llena todos los campos!");
     }
-  }
+  };
+
+  const handleLoginGoogle = async () => {
+    try {
+      const result = await WebBrowser.openAuthSessionAsync(loginEndpoint, callbackEndpoint);
+      if (result.type === 'success') {
+        // Obtener el JWT desde result.url (parseando el query string, por ejemplo)
+        const jwt = extractJWTFromURL(result.url);
+  
+        // Almacenar el JWT de manera segura
+        await SecureStore.setItemAsync('userToken', jwt);
+  
+        // Redireccionar al usuario a la pantalla 'Bridges'
+        router.replace('Bridges');
+      } else {
+        console.error('Login de Google cancelado o fallido:', result.type);
+      }
+    } catch (error) {
+      console.error('Error en la solicitud:', error);
+    }
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <View style={styles.container}>
@@ -37,7 +63,7 @@ export default function Login() {
               alt="App Logo"
               resizeMode="contain"
               style={styles.headerImg}
-              source={logo} 
+              source={logo}
             />
           </View>
 
@@ -80,16 +106,14 @@ export default function Login() {
 
             <View style={styles.formAction}>
               <TouchableOpacity
-                onPress={() => {
-                  // handle onPress
-                }}>
+                onPress={handleLoginGoogle}>
                 <View style={styles.btn}>
                   <Text style={styles.btnText}>Ingresa con Google</Text>
                 </View>
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.formLink}>Olvidaste tu contraseña?</Text>
+            <Text style={styles.formLink}>¿Olvidaste tu contraseña?</Text>
           </View>
         </KeyboardAwareScrollView>
 
@@ -99,7 +123,7 @@ export default function Login() {
           }}
           style={styles.registerBtn}>
           <Text style={styles.formFooter}>
-            No tienes una cuenta?{' '}
+            ¿No tienes una cuenta?{' '}
             <Text style={{ color: "#FF8403" }}> Regístrate</Text>
           </Text>
         </TouchableOpacity>
@@ -123,7 +147,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#929292',
   },
-  /** Header */
   header: {
     borderRadius: 3
   },
@@ -133,7 +156,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     borderRadius: 3
   },
-  /** Form */
   form: {
     paddingHorizontal: 24,
     flexGrow: 1,
@@ -157,7 +179,6 @@ const styles = StyleSheet.create({
     color: '#222',
     textAlign: 'center',
   },
-  /** Input */
   input: {
     marginBottom: 30,
   },
@@ -179,7 +200,6 @@ const styles = StyleSheet.create({
     borderColor: '#C9D3DB',
     borderStyle: 'solid',
   },
-  /** Button */
   btn: {
     flexDirection: 'row',
     alignItems: 'center',
