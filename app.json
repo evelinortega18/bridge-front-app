@@ -26,7 +26,9 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "permissions":["android.permissions.HIGH_SIMPLY_RATE_SENSORS"]
+      "permissions": [
+        "android.permissions.HIGH_SIMPLY_RATE_SENSORS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -43,7 +45,8 @@
             "./local/assets/notification-sound-other.wav"
           ]
         }
-      ]
+      ],
+      "expo-router"
     ]
   }
 }
