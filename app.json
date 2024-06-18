@@ -29,8 +29,7 @@
       },
       "permissions": [
         "android.permissions.HIGH_SIMPLY_RATE_SENSORS"
-      ],
-      "package": "com.juanes2002.bridgesapp"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
