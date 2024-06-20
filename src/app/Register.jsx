@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import {
   StyleSheet,
   SafeAreaView,
@@ -7,8 +7,6 @@ import {
   Text,
   TouchableOpacity,
   TextInput,
-  Pressable,
-  Alert,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import logo from "../../assets/logo-alcaldia.png";
@@ -21,52 +19,6 @@ export default function Register({ navigation }) {
     repeatPassword: "",
   });
   const router = useRouter()
-
-  const handleRegister = async () => {
-    if (!form.email || !form.password || !form.repeatPassword) {
-      Alert.alert("Registro", "Por favor, completa todos los campos.");
-      return;
-    }
-
-    if (form.password !== form.repeatPassword) {
-      Alert.alert("Registro", "Las contraseñas no coinciden.");
-      return;
-    }
-
-    const url = process.env.CREATE_USER_ACCOUNT;
-    const data = {
-      username: form.email,
-      password: form.password,
-    };
-
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-      console.log("🚀 ~ handleRegister ~ response:", response)
-
-      if (!response.ok) {
-        throw new Error("Error al registrar usuario");
-      }
-
-      const responseData = await response.json();
-      console.log(responseData); 
-
-      // Redirigir a la siguiente pantalla después del registro exitoso
-      router.push("Bridges"); // Ajusta según cómo manejes la navegación
-
-    } catch (error) {
-      console.error("Error al realizar la solicitud:", error);
-      Alert.alert(
-        "Registro",
-        "Error al registrar usuario. Por favor, inténtalo nuevamente."
-      );
-    }
-  };
 
   const handleChange = (key, value) => {
     setForm({
@@ -129,7 +81,7 @@ export default function Register({ navigation }) {
               />
             </View>
 
-            <TouchableOpacity onPress={handleRegister}>
+            <TouchableOpacity onPress={() => router.push('Login')}>
               <View style={styles.btn}>
                 <Text style={styles.btnText}>Registrarme</Text>
               </View>

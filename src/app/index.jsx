@@ -13,11 +13,6 @@ import {
 import { useRouter } from "expo-router";
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import logo from "../../assets/logo-alcaldia.png";
-import * as WebBrowser from 'expo-web-browser';
-import * as SecureStore from 'expo-secure-store'; // Importar SecureStore
-
-const loginEndpoint = process.env.LOGIN_USER_ACCOUNT_GOOGLE;
-const callbackEndpoint = process.env.LOGIN_USER_ACCOUNT_GOOGLE_CALLBACK;
 
 export default function Login() {
   const [form, setForm] = useState({
@@ -31,26 +26,6 @@ export default function Login() {
   const handleLogin = async () => {
     if (!emailRef.current || !passwordRef.current) {
       Alert.alert('Login', "¡Llena todos los campos!");
-    }
-  };
-
-  const handleLoginGoogle = async () => {
-    try {
-      const result = await WebBrowser.openAuthSessionAsync(loginEndpoint, callbackEndpoint);
-      if (result.type === 'success') {
-        // Obtener el JWT desde result.url (parseando el query string, por ejemplo)
-        const jwt = extractJWTFromURL(result.url);
-  
-        // Almacenar el JWT de manera segura
-        await SecureStore.setItemAsync('userToken', jwt);
-  
-        // Redireccionar al usuario a la pantalla 'Bridges'
-        router.replace('Bridges');
-      } else {
-        console.error('Login de Google cancelado o fallido:', result.type);
-      }
-    } catch (error) {
-      console.error('Error en la solicitud:', error);
     }
   };
 
@@ -106,7 +81,9 @@ export default function Login() {
 
             <View style={styles.formAction}>
               <TouchableOpacity
-                onPress={handleLoginGoogle}>
+                onPress={() => {
+                  router.push('Bridges')
+                }}>
                 <View style={styles.btn}>
                   <Text style={styles.btnText}>Ingresa con Google</Text>
                 </View>

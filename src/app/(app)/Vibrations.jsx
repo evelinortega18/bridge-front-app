@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Text, View, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from "react-native";
+import {
+  Text,
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
 import { Accelerometer } from "expo-sensors";
 import * as Notifications from "expo-notifications";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as math from "mathjs";
-import { LineChart } from 'react-native-chart-kit';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -15,7 +20,11 @@ Notifications.setNotificationHandler({
 });
 
 export default function Vibrations() {
-  const [accelerometerData, setAccelerometerData] = useState({ x: [], y: [], z: [] });
+  const [accelerometerData, setAccelerometerData] = useState({
+    x: [],
+    y: [],
+    z: [],
+  });
   const [isAccelerometerActive, setIsAccelerometerActive] = useState(false);
   const [subscription, setSubscription] = useState(null);
   const [ecgData, setEcgData] = useState([]);
@@ -63,10 +72,10 @@ export default function Vibrations() {
       trigger: null,
     });
   };
-  
+
   const performFFT = () => {
     const { x, y, z } = accelerometerData;
-    console.log("about to fuck up")
+    console.log("about to fuck up");
     const dataX = math.ifft(x);
     const dataY = math.ifft(y);
     const dataZ = math.ifft(z);
@@ -105,7 +114,10 @@ export default function Vibrations() {
     const maximaZ = Math.max(...z);
     const minimaZ = Math.min(...z);
 
-    return { maxima: Math.max(maximaX, maximaY, maximaZ), minima: Math.min(minimaX, minimaY, minimaZ) };
+    return {
+      maxima: Math.max(maximaX, maximaY, maximaZ),
+      minima: Math.min(minimaX, minimaY, minimaZ),
+    };
   };
 
   const identificarPatronesRepetitivos = () => {
@@ -113,7 +125,7 @@ export default function Vibrations() {
     const threshold = 0.1; // Umbral para considerar un pico (threshold for considering a peak)
     //console.log("acceleration data:", accelerometerData);
 
-    for (const axis of ['x', 'y', 'z']) {
+    for (const axis of ["x", "y", "z"]) {
       const data = accelerometerData[axis]; // Get data for the current axis
       const peaks = [];
       console.log("data", data);
@@ -127,7 +139,6 @@ export default function Vibrations() {
         }
       }
       results[axis] = peaks; // Store peaks for the current axis
-
     }
 
     const { x, y, z } = Object.values(ecgData);
@@ -135,7 +146,9 @@ export default function Vibrations() {
     const maxFrecX = Math.max(x);
     const maxFrecY = Math.max(y);
     const maxFrecZ = Math.max(z);
-    console.log("Valores máximos de frecuencias (mayor máximo, no primer máximo)");
+    console.log(
+      "Valores máximos de frecuencias (mayor máximo, no primer máximo)"
+    );
     console.log("maxFrecX:", maxFrecX);
     console.log("maxFrecY:", maxFrecY);
     console.log("maxFrecZ:", maxFrecZ);
@@ -145,9 +158,18 @@ export default function Vibrations() {
     console.log("Picos detectados z:", results.z);
     console.log("Valores de primer máximo de frecuencias");
     // FIXME Revisar unidades de picos resultantes de ifft
-    console.log("Picos detectados x:", results.x?.[0]?.value ? `${results.x[0].value} Hz` : "");
-    console.log("Picos detectados y:", results.y?.[0]?.value ? `${results.y[0].value} Hz` : "");
-    console.log("Picos detectados z:", results.z?.[0]?.value ? `${results.z[0].value} Hz` : "");
+    console.log(
+      "Picos detectados x:",
+      results.x?.[0]?.value ? `${results.x[0].value} Hz` : ""
+    );
+    console.log(
+      "Picos detectados y:",
+      results.y?.[0]?.value ? `${results.y[0].value} Hz` : ""
+    );
+    console.log(
+      "Picos detectados z:",
+      results.z?.[0]?.value ? `${results.z[0].value} Hz` : ""
+    );
     setFirstPeak({
       x: results?.x?.[0]?.value || "-",
       y: results?.y?.[0]?.value || "-",
@@ -175,82 +197,97 @@ export default function Vibrations() {
     };
   }, []);
 
-  const chartData = showPeaks ? {
-    labels: ecgData.x,
-    datasets: [
-      {
-        data: ecgData.x,
-        strokeWidth: 2,
-        color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`, // Red color for xreal
-        label: 'X-axis',
-      },
-      {
-        data: ecgData.y,
-        strokeWidth: 2,
-        color: (opacity = 1) => `rgba(0, 255, 0, ${opacity})`, // Green color for yreal
-        label: 'Y-axis',
-      },
-      {
-        data: ecgData.z,
-        strokeWidth: 2,
-        color: (opacity = 1) => `rgba(0, 0, 255, ${opacity})`, // Blue color for zreal
-        label: 'Z-axis',
-      },
-    ],
-  } : {};
-
-
-  return (
-    <SafeAreaView style={{ backgroundColor: "#ffff" }}>
-      <ScrollView>
-
-        <View style={styles.container}>
-          <Text style={styles.title}>
-            A continuación, pulsa el botón naranja para iniciar o detener la
-            captura de datos:
-          </Text>
-
-          {showPeaks && (
-            <View style={styles.picks}>
-              <Text style={styles.titlePicks}>Picos altos:</Text>
-              {Object.keys(peaks).map((axis) => ( // Loop through axis names (x, y, z)
-                <View key={axis} style={styles.picksShow}>
-                  <Text style={styles.picksResult}>
-                    Eje {axis}: {peaks[axis].length > 0 // Check if there are peaks for this axis
-                      ? peaks[axis]
-                        .map((peak) => `Índice: ${peak.index}, Valor: ${peak.value}, Freq: ${firstPeak[axis]} Hz`)
-                        .join(", ")
-                      : "Sin picos detectados"}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          )}
-          
-          
-          
-
-
-          <View style={styles.MeasureView}>
-            <Text>x: {accelerometerData.x.length > 0 ? accelerometerData.x[accelerometerData.x.length - 1] : '---'}</Text>
-            <Text>y: {accelerometerData.y.length > 0 ? accelerometerData.y[accelerometerData.y.length - 1] : '---'}</Text>
-            <Text>z: {accelerometerData.z.length > 0 ? accelerometerData.z[accelerometerData.z.length - 1] : '---'}</Text>
-          </View>
-          <TouchableOpacity
-            onPress={handleStartStopAccelerometer}
-            style={isAccelerometerActive ? styles.buttonStop : styles.buttonStart}
-          >
-            <Text style={styles.buttonText}>
-              {isAccelerometerActive
-                ? "Parar Captura de Datos"
-                : "Comenzar Captura de Datos"}
+  const chartData = showPeaks
+    ? {
+        labels: ecgData.x,
+        datasets: [
+          {
+            data: ecgData.x,
+            strokeWidth: 2,
+            color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`, // Red color for xreal
+            label: "X-axis",
+          },
+          {
+            data: ecgData.y,
+            strokeWidth: 2,
+            color: (opacity = 1) => `rgba(0, 255, 0, ${opacity})`, // Green color for yreal
+            label: "Y-axis",
+          },
+          {
+            data: ecgData.z,
+            strokeWidth: 2,
+            color: (opacity = 1) => `rgba(0, 0, 255, ${opacity})`, // Blue color for zreal
+            label: "Z-axis",
+          },
+        ],
+      }
+    : {};
+    return (
+      <SafeAreaView style={{ backgroundColor: "#ffff" }}>
+        <ScrollView>
+          <View style={styles.container}>
+            <Text style={styles.title}>
+              A continuación, pulsa el botón naranja para iniciar o detener la
+              captura de datos:
             </Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
+    
+            {showPeaks && (
+              <View style={styles.picks}>
+                <Text style={styles.titlePicks}>Picos altos:</Text>
+                {Object.keys(peaks).map((axis) => (
+                  // Loop through axis names (x, y, z)
+                  <View key={axis} style={styles.picksShow}>
+                    <Text style={styles.picksResult}>
+                      Eje {axis}:{" "}
+                      {peaks[axis].length > 0
+                        ? peaks[axis]
+                            .map(
+                              (peak) =>
+                                `Índice: ${peak.index}, Valor: ${peak.value}, Freq: ${firstPeak[axis]} Hz`
+                            )
+                            .join(", ")
+                        : "Sin picos detectados"}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+    
+            <View style={styles.MeasureView}>
+              <Text>
+                x:{" "}
+                {accelerometerData.x.length > 0
+                  ? accelerometerData.x[accelerometerData.x.length - 1]
+                  : "---"}
+              </Text>
+              <Text>
+                y:{" "}
+                {accelerometerData.y.length > 0
+                  ? accelerometerData.y[accelerometerData.y.length - 1]
+                  : "---"}
+              </Text>
+              <Text>
+                z:{" "}
+                {accelerometerData.z.length > 0
+                  ? accelerometerData.z[accelerometerData.z.length - 1]
+                  : "---"}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={handleStartStopAccelerometer}
+              style={isAccelerometerActive ? styles.buttonStop : styles.buttonStart}
+            >
+              <Text style={styles.buttonText}>
+                {isAccelerometerActive
+                  ? "Parar Captura de Datos"
+                  : "Comenzar Captura de Datos"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+}  
 
 const styles = StyleSheet.create({
   container: {
@@ -275,7 +312,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F4F4F4",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 200,
+    marginTop: 60,
   },
   buttonStart: {
     flexDirection: "row",
@@ -319,11 +356,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   picksShow: {
-    width: 380,
+    width: 420,
     height: 50,
     backgroundColor: "#004884",
     justifyContent: "center",
-    borderRadius: 15
+    borderRadius: 15,
+    marginBottom: 10,
   },
   picksResult: {
     fontSize: 19,

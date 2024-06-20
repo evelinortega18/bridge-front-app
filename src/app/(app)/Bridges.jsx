@@ -12,7 +12,6 @@ import {
   Button,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { Camera } from "expo-camera";
 import { useRouter } from "expo-router";
 
 const items = [

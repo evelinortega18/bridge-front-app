@@ -36,8 +36,7 @@
       "bundler": "metro"
     },
     "plugins": [
-      "expo-secure-store",
-      "expo-camera"
+      "expo-secure-store"
     ],
     "extra": {
       "eas": {
